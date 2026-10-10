@@ -82,7 +82,7 @@ export default function SignUpPage() {
                 );
             }
 
-            router.replace("/sign-in");
+            router.replace("/agents");
         } catch (err) {
             setError(
                 err instanceof Error

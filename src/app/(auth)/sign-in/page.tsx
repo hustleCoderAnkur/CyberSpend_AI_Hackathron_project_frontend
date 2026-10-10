@@ -74,7 +74,7 @@ export default function SignInPage() {
             // Prefer HttpOnly Secure cookies set by the backend.
             // Do not put authentication tokens in localStorage.
 
-            router.replace("/organizations");
+            router.replace("/agents");
             router.refresh();
         } catch (err) {
             setError(

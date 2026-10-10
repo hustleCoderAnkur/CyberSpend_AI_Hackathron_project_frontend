@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -14,7 +13,7 @@ import {
 
 type Status = "loading" | "success" | "error";
 
-export default function CallbackPage() {
+function CallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const started = useRef(false);
@@ -54,26 +53,36 @@ export default function CallbackPage() {
             }
 
             try {
-                const response = await fetch(`${apiUrl}/api/auth/callback`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    credentials: "include",
-                    body: JSON.stringify({ code }),
-                });
+                const response = await fetch(
+                    `${apiUrl.replace(/\/+$/, "")}/api/auth/callback`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        credentials: "include",
+                        body: JSON.stringify({ code }),
+                    }
+                );
 
-                const data = await response.json().catch(() => ({}));
+                const responseData: unknown = await response
+                    .json()
+                    .catch(() => ({}));
+                const data =
+                    responseData && typeof responseData === "object"
+                        ? (responseData as Record<string, unknown>)
+                        : {};
 
                 if (!response.ok) {
                     throw new Error(
-                        data.message || data.error || "Authentication failed."
+                        (typeof data.message === "string" && data.message) ||
+                        (typeof data.error === "string" && data.error) ||
+                        "Authentication failed."
                     );
                 }
 
                 setStatus("success");
                 setMessage("Authentication successful. Redirecting...");
-
                 router.replace("/workspace");
                 router.refresh();
             } catch (error) {
@@ -101,7 +110,6 @@ export default function CallbackPage() {
                     <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-neutral-200 bg-white shadow-sm">
                         <ShieldCheck size={25} strokeWidth={1.7} />
                     </span>
-
                     <span className="text-xl font-bold tracking-tight">
                         CyberSpend{" "}
                         <span className="font-medium text-neutral-500">AI</span>
@@ -115,11 +123,9 @@ export default function CallbackPage() {
                             className="animate-spin text-neutral-900"
                         />
                     )}
-
                     {status === "success" && (
                         <CheckCircle2 size={29} className="text-neutral-900" />
                     )}
-
                     {status === "error" && (
                         <CircleAlert size={29} className="text-neutral-900" />
                     )}
@@ -154,7 +160,6 @@ export default function CallbackPage() {
                             Return to sign in
                             <ArrowRight size={16} />
                         </Link>
-
                         <Link
                             href="/"
                             className="inline-flex h-12 items-center justify-center rounded-xl border border-neutral-200 bg-white px-5 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-50"
@@ -169,5 +174,27 @@ export default function CallbackPage() {
                 </p>
             </section>
         </main>
+    );
+}
+
+export default function CallbackPage() {
+    return (
+        <Suspense
+            fallback={
+                <main className="flex min-h-screen items-center justify-center bg-white px-5">
+                    <div className="text-center">
+                        <LoaderCircle
+                            size={28}
+                            className="mx-auto animate-spin text-neutral-900"
+                        />
+                        <p className="mt-4 text-sm text-neutral-500">
+                            Preparing authentication...
+                        </p>
+                    </div>
+                </main>
+            }
+        >
+            <CallbackContent />
+        </Suspense>
     );
 }

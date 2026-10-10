@@ -73,6 +73,8 @@ export default function SignInPage() {
             // Store tokens only after deciding on a secure token-storage strategy.
             // Prefer HttpOnly Secure cookies set by the backend.
             // Do not put authentication tokens in localStorage.
+            sessionStorage.setItem("accessToken", accessToken);
+            sessionStorage.setItem("refreshToken", refreshToken);
 
             router.replace("/agents");
             router.refresh();

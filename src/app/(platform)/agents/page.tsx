@@ -438,51 +438,71 @@ export default function AgentsPage() {
 
         setRenamingId(null);
     }
+    
+function getAccessToken(): string | null {
+    if (typeof window === "undefined") return null;
 
-    function getAccessToken(): string | null {
-        // Auth screens may store the backend's JSON accessToken under different keys.
-        // Never read or expose refresh tokens here.
-        const candidateKeys = [
-            "accessToken",
-            "access_token",
-            "cyberspend-access-token",
-            "cyberspend-auth",
-            "auth",
-            "auth-storage",
-        ];
+    // Check sessionStorage first.
+    const sessionToken = sessionStorage.getItem("accessToken");
+    if (sessionToken?.trim()) return sessionToken.trim();
 
-        for (const key of candidateKeys) {
-            try {
-                const raw = localStorage.getItem(key);
-                if (!raw) continue;
+    // Check common localStorage keys.
+    const candidateKeys = [
+        "accessToken",
+        "access_token",
+        "cyberspend-access-token",
+        "cyberspend-auth",
+        "auth",
+        "auth-storage",
+    ];
 
-                if (!raw.trim().startsWith("{")) {
-                    if (key.toLowerCase().includes("token") && raw.trim()) {
-                        return raw.trim();
-                    }
-                    continue;
+    for (const key of candidateKeys) {
+        try {
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+
+            if (!raw.trim().startsWith("{")) {
+                if (
+                    key.toLowerCase().includes("token") &&
+                    raw.trim()
+                ) {
+                    return raw.trim();
                 }
-
-                const parsed: unknown = JSON.parse(raw);
-                if (!parsed || typeof parsed !== "object") continue;
-
-                const record = parsed as Record<string, unknown>;
-                for (const value of [
-                    record.accessToken,
-                    record.access_token,
-                    (record.user as Record<string, unknown> | undefined)?.accessToken,
-                    (record.state as Record<string, unknown> | undefined)?.accessToken,
-                    (record.state as Record<string, unknown> | undefined)?.access_token,
-                ]) {
-                    if (typeof value === "string" && value.trim()) return value;
-                }
-            } catch {
-                // Ignore malformed or inaccessible storage entries.
+                continue;
             }
-        }
 
-        return null;
+            const parsed: unknown = JSON.parse(raw);
+            if (!parsed || typeof parsed !== "object") continue;
+
+            const record = parsed as Record<string, unknown>;
+            const state = record.state as
+                | Record<string, unknown>
+                | undefined;
+            const user = record.user as
+                | Record<string, unknown>
+                | undefined;
+
+            const candidates = [
+                record.accessToken,
+                record.access_token,
+                user?.accessToken,
+                state?.accessToken,
+                state?.access_token,
+            ];
+
+            for (const value of candidates) {
+                if (typeof value === "string" && value.trim()) {
+                    return value.trim();
+                }
+            }
+        } catch {
+            // Ignore malformed storage entries.
+        }
     }
+
+    return null;
+}
+
 
     async function handleChatSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();

@@ -82,7 +82,18 @@ export default function SignUpPage() {
                 );
             }
 
+            const { user, accessToken, refreshToken } = result.data ?? {};
+
+            if (!user?.id || !accessToken || !refreshToken) {
+                throw new Error("Invalid registration response from server.");
+            }
+
+            sessionStorage.setItem("accessToken", accessToken);
+            sessionStorage.setItem("refreshToken", refreshToken);
+
             router.replace("/agents");
+            router.refresh();
+            
         } catch (err) {
             setError(
                 err instanceof Error
